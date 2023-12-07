@@ -1,7 +1,10 @@
+#include <iostream>
 #include <GL/glut.h>
 #include <math.h>
 #include <cstdlib>
-#include <ctime>
+#include <ctime> 
+#include "stb_image.h"
+#include "getBMP.h"
 
 float angleX = 0.0f;
 float angleY = 0.0f;
@@ -11,6 +14,50 @@ float rotationY = 180.0f;
 
 int lastMouseX = 0;
 int lastMouseY = 0;
+
+static unsigned int texture[1];
+static int logo = 0;
+
+void loadTextures()
+{
+    const char* texturePaths[] = {
+        //"Textures/pens.bmp",
+        "E:/Kuli yah/Semester 3/Grafika Komputer/OpenGLwrappers/ExperimenterSource/Dadu 8 SIsi/Textures/pens.bmp"
+    };
+
+    // Loop through each texture
+    for (int i = 0; i < 1; ++i) {
+        int width, height, channels;
+
+        // Load image using stb_image
+        unsigned char* image = stbi_load(texturePaths[i], &width, &height, &channels, STBI_rgb_alpha);
+
+        if (image == nullptr) {
+            std::cerr << "Failed to load image: " << texturePaths[i] << std::endl;
+            continue;  // Move to the next iteration if loading fails
+        }
+
+        // Generate texture object
+        glGenTextures(1, &texture[i]);
+
+        // Bind the texture
+        glBindTexture(GL_TEXTURE_2D, texture[i]);
+
+        // Specify image data for the currently active texture object
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+        // Free the image data
+        stbi_image_free(image);
+
+        // Set texture parameters for wrapping
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+        // Set texture parameters for filtering
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+}
 
 void drawDotPutih(GLfloat x, GLfloat y, GLfloat z, GLfloat radius)
 {
@@ -195,6 +242,8 @@ void drawDadu()
 }
 
 void drawTable() {
+    //glEnable(GL_TEXTURE_2D);
+
     // Atas meja
     glBegin(GL_QUADS);
     glColor3f(0.7f, 0.7f, 0.7f); // Warna putih
@@ -204,14 +253,26 @@ void drawTable() {
     glVertex3f(-0.8f, 0.0f, 0.8f);
     glEnd();
 
+
+    glEnable(GL_TEXTURE_2D);
+
     // Depan meja
     glBegin(GL_QUADS);
-    glColor3f(0.7f, 0.4f, 0.1f); // Warna coklat karamel
+    glPushMatrix();
+    glBindTexture(GL_TEXTURE_2D, texture[0]);  // Mengaitkan tekstur pertama
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.8f, 0.9f, 0.7f);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(0.8f, 0.9f, 0.7f);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(0.8f, 0.0f, 0.7f);
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.8f, 0.0f, 0.7f);
+    glColor3f(.7f, 0.4f, 0.1f); // Warna coklat karamel
     glVertex3f(-0.8f, 0.9f, 0.7f);
     glVertex3f(0.8f, 0.9f, 0.7f);
     glVertex3f(0.8f, 0.0f, 0.7f);
     glVertex3f(-0.8f, 0.0f, 0.7f);
+    glPopMatrix();
     glEnd();
+
+    glDisable(GL_TEXTURE_2D);
 
     // Atas depan meja
     glBegin(GL_QUADS);
@@ -376,11 +437,12 @@ void drawTable() {
     glVertex3f(-0.7f, 1.3f, 0.8f);
     glVertex3f(-0.8f, 1.3f, 0.7f);
     glEnd();
-
+  
+    //glDisable(GL_TEXTURE_2D);
 
 }
 
-void display_meja()
+void display()
 {
 
     glEnable(GL_LIGHTING);
@@ -391,26 +453,27 @@ void display_meja()
     glLoadIdentity();
 
     glPushMatrix();
-    glTranslatef(0.0f, -0.0f, -5.0f);
+    glTranslatef(0.0f, -0.2f, -5.0f);
     glRotatef(rotationX, 0.0f, 15.0f, 0.0f);
     glRotatef(rotationY, 1.0f, 0.0f, 0.0f);
     drawTable();
     glPopMatrix();
 
+    //************
     glPushMatrix();
-    angleX += rotationSpeed;
-    angleY += rotationSpeed;
+    //angleX += rotationSpeed;
+    //angleY += rotationSpeed;
 
     glTranslatef(0.0f, 5.0f, -30.0f);  //kanan-kiri, atas-bawah, ukuran
     glRotatef(angleX, 0.0f, 15.0f, 0.0f);
-    glRotatef(angleY, -15.0f, 0.0f, 0.0f);
     drawDadu();
 
-    if (rotationSpeed > 0.0f)
+    /*if (rotationSpeed > 0.0f)
     {
         rotationSpeed -= 0.0005f; // Adjust the value for the desired deceleration rate
         glutPostRedisplay();  // Trigger a redraw
     }
+    */
 
     glPopMatrix();
 
@@ -421,39 +484,6 @@ void display_meja()
 
     glutSwapBuffers();
 }
-
-/*void display_dadu()
-{
-    angleX += rotationSpeed;
-    angleY += rotationSpeed;
-
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);  // Enable depth testing
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glTranslatef(0.0f, 1.0f, -6.0f);
-    glRotatef(angleX, 0.0f, 15.0f, 0.0f);
-    glRotatef(angleY, -15.0f, 0.0f, 0.0f);
-
-    drawDadu();
-
-    glDisable(GL_DEPTH_TEST);
-
-    glDisable(GL_LIGHT0);
-    glDisable(GL_LIGHTING);
-
-    if (rotationSpeed > 0.0f)
-    {
-        rotationSpeed -= 0.001f; // Adjust the value for the desired deceleration rate
-        glutPostRedisplay();  // Trigger a redraw
-    }
-
-
-}
-*/
 
 void reshape(GLsizei width, GLsizei height)
 {
@@ -484,19 +514,19 @@ void initLighting() {
     glShadeModel(GL_FLAT);  // You can also use GL_SMOOTH for smooth shading
 }
 
-void randomizeRotationSpeed()
+/*void randomizeRotationSpeed()
 {
     // Generate a random rotation speed between 1 and 10
     rotationSpeed = (rand() % 3 + 1) * 0.7;
 }
-
+*/
 void keyboard(unsigned char key, int x, int y)
 {
     switch (key)
     {
     case 'r':
     case 'R':
-        randomizeRotationSpeed();
+    angleY: 0.1f;
         glutPostRedisplay();  // Trigger a redraw
         break;
     }
@@ -535,7 +565,6 @@ void motion(int x, int y)
     angleY += deltaY * 0.1f;
 
     rotationX += deltaX * 0.1f;
-    //rotationY += deltaX * 0.1f;
 
     glutPostRedisplay();
 }
@@ -551,20 +580,18 @@ int main(int argc, char** argv)
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Dadu Artama Mail");
 
-    //glutDisplayFunc(display_dadu);
-    glutDisplayFunc(display_meja);
+
+    glutDisplayFunc(display);
     initLighting();  // Call the lighting initialization function
     glutReshapeFunc(reshape);
     glutMouseFunc(mouse);
     glutMotionFunc(motion);
     glutKeyboardFunc(keyboard);  // Set the keyboard function
 
-
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_NORMALIZE);
     glClearDepth(1.0f);
-
-    //glutIdleFunc(display_dadu);
-
+    loadTextures();
     glutMainLoop();
 
     return 0;
