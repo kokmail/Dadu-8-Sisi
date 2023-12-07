@@ -1,23 +1,27 @@
 #include <iostream>
-#include <GL/glut.h>
+#include <GL/freeglut.h>
 #include <math.h>
-#include <cstdlib>
-#include <ctime> 
 #include "stb_image.h"
-#include "getBMP.h"
 
-float angleX = 0.0f;
-float angleY = 0.0f;
-float rotationSpeed = 0.0f;  // Initial rotation speed
-float rotationX = 220.0f;
-float rotationY = 180.0f;
-
+//  Variabel untuk Mouse
 int lastMouseX = 0;
 int lastMouseY = 0;
 
-static unsigned int texture[1];
-static int logo = 0;
+//  Variabel untuk objek Dadu
+float angleX = 0.0f;
+float angleY = 0.0f;
+float rotationSpeed = 0.0f;
+float translateY = 0.0f;
+bool rotateDice = false;
 
+// Variabel untuk objek Meja
+float rotationX = 220.0f;
+float rotationY = 180.0f;
+
+//  Array untuk menyimpan data Texture
+static unsigned int texture[1];
+
+//  Fungsi atau Method untuk membaca dan me-load Texture
 void loadTextures()
 {
     const char* texturePaths[] = {
@@ -59,6 +63,7 @@ void loadTextures()
     }
 }
 
+//  Fungsi untuk membuat titik putih pada Dadu
 void drawDotPutih(GLfloat x, GLfloat y, GLfloat z, GLfloat radius)
 {
 
@@ -80,6 +85,7 @@ void drawDotPutih(GLfloat x, GLfloat y, GLfloat z, GLfloat radius)
     glEnd();
 }
 
+//  Membuat objek Dadyu
 void drawDadu()
 {
     glBegin(GL_TRIANGLES);
@@ -241,6 +247,7 @@ void drawDadu()
     //glutSwapBuffers();
 }
 
+//  Membuat objek Meja
 void drawTable() {
     //glEnable(GL_TEXTURE_2D);
 
@@ -437,21 +444,21 @@ void drawTable() {
     glVertex3f(-0.7f, 1.3f, 0.8f);
     glVertex3f(-0.8f, 1.3f, 0.7f);
     glEnd();
-  
+
     //glDisable(GL_TEXTURE_2D);
 
 }
 
+//  Memproyeksi window untuk menampilkan output
 void display()
 {
-
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glLoadIdentity();
 
+    // Render 3D objects
     glPushMatrix();
     glTranslatef(0.0f, -0.2f, -5.0f);
     glRotatef(rotationX, 0.0f, 15.0f, 0.0f);
@@ -459,23 +466,57 @@ void display()
     drawTable();
     glPopMatrix();
 
-    //************
     glPushMatrix();
-    //angleX += rotationSpeed;
-    //angleY += rotationSpeed;
-
-    glTranslatef(0.0f, 5.0f, -30.0f);  //kanan-kiri, atas-bawah, ukuran
+    glLoadIdentity();
+    glTranslatef(0.0f, 5.0f + translateY, -30.0f);
     glRotatef(angleX, 0.0f, 15.0f, 0.0f);
     drawDadu();
+    glPopMatrix();
 
-    /*if (rotationSpeed > 0.0f)
-    {
-        rotationSpeed -= 0.0005f; // Adjust the value for the desired deceleration rate
-        glutPostRedisplay();  // Trigger a redraw
+    // Render 2D text
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0.0, glutGet(GLUT_WINDOW_WIDTH), 0.0, glutGet(GLUT_WINDOW_HEIGHT));
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    
+    glRasterPos2i(10, 780);
+    std::string infoText = "Press 'R' to rotate the dice";
+    for (const char& c : infoText) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, c);
     }
-    */
+
+    glRasterPos2i(10, 760);
+    infoText = "Press 'T' to drop the dice";
+    for (const char& c : infoText) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, c);
+    }
+
+    glRasterPos2i(10, 740);
+    infoText = "Press 'LMB' to rotate the table";
+    for (const char& c : infoText) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, c);
+    }
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
 
     glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    // Reset to perspective projection for 3D rendering
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(45.0f, (GLfloat)glutGet(GLUT_WINDOW_WIDTH) / (GLfloat)glutGet(GLUT_WINDOW_HEIGHT), 0.1f, 100.0f);
+
+    glMatrixMode(GL_MODELVIEW);
 
     glDisable(GL_DEPTH_TEST);
 
@@ -485,16 +526,7 @@ void display()
     glutSwapBuffers();
 }
 
-void reshape(GLsizei width, GLsizei height)
-{
-    GLfloat aspect = (GLfloat)width / (GLfloat)height;
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(50.0f, aspect, 0.5f, 100.0f);
-    glMatrixMode(GL_MODELVIEW);
-}
-
+//  Lighting atau Pencahayaan
 void initLighting() {
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
@@ -514,31 +546,68 @@ void initLighting() {
     glShadeModel(GL_FLAT);  // You can also use GL_SMOOTH for smooth shading
 }
 
-/*void randomizeRotationSpeed()
+//  Fungsi untuk merotasi Dadu
+void idle() 
 {
-    // Generate a random rotation speed between 1 and 10
-    rotationSpeed = (rand() % 3 + 1) * 0.7;
+    if (rotateDice)
+    {
+        angleX += rotationSpeed;
+        angleY += rotationSpeed;
+
+        if (rotationSpeed > 0.0f)
+        {
+            rotationSpeed -= 0.00000f;
+            glutPostRedisplay();
+        }
+    }
+
+    if (translateY != 0.0f)
+    {
+        translateY -= 0.01f; // Mengatur nilai untuk kecepatan yang diinginkan.
+
+        if (translateY <= -5.0f)  // Kondisi
+        {
+            translateY = 0.0f;  // Reset ketiak mencapai limit
+        }
+
+        glutPostRedisplay();
+    }
 }
-*/
+
+//  Untuk membaca input user menjadi sebuah fungsi
 void keyboard(unsigned char key, int x, int y)
 {
     switch (key)
     {
     case 'r':
     case 'R':
-    angleY: 0.1f;
-        glutPostRedisplay();  // Trigger a redraw
+        rotateDice = !rotateDice;;
+        if (rotateDice) {
+            rotationSpeed = 0.05f;
+            glutIdleFunc(idle);  // Mengaktifkan fungsi idle rotasi secara berkelanjutan
+        }
+        else {
+            rotationSpeed = 0.0f;  // Stop rotasi
+            glutIdleFunc(nullptr);  // Jika objek sedang rotasi, dan r dipencet lagi, maka idle function dinonaktifkan
+        }
         break;
-    }
-    switch (key)
-    {
-    case 27: // Escape key
+
+    case 't':
+    case 'T':
+        // Animasi menjatuhkan Dadu
+        translateY = -0.0000005f;
+        glutIdleFunc(idle);
+        break;
+
+    case 27: // Esc Key untuk Close atau Exit
         exit(0);
         break;
+
     case 'w':
         rotationY += 5.0f;
         glutPostRedisplay();
         break;
+
     case 's':
         rotationY -= 5.0f;
         glutPostRedisplay();
@@ -569,6 +638,15 @@ void motion(int x, int y)
     glutPostRedisplay();
 }
 
+void reshape(GLsizei width, GLsizei height)
+{
+    GLfloat aspect = (GLfloat)width / (GLfloat)height;
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(50.0f, aspect, 0.5f, 100.0f);
+    glMatrixMode(GL_MODELVIEW);
+}
 
 int main(int argc, char** argv)
 {
@@ -580,13 +658,12 @@ int main(int argc, char** argv)
     glutInitWindowPosition(50, 50);
     glutCreateWindow("Dadu Artama Mail");
 
-
     glutDisplayFunc(display);
-    initLighting();  // Call the lighting initialization function
+    initLighting();  
     glutReshapeFunc(reshape);
     glutMouseFunc(mouse);
     glutMotionFunc(motion);
-    glutKeyboardFunc(keyboard);  // Set the keyboard function
+    glutKeyboardFunc(keyboard); 
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_NORMALIZE);
