@@ -21,6 +21,7 @@ float rotationY = 180.0f;
 //  Array untuk menyimpan data Texture
 static unsigned int texture[1];
 
+
 //  Fungsi atau Method untuk membaca dan me-load Texture
 void loadTextures()
 {
@@ -249,7 +250,6 @@ void drawDadu()
 
 //  Membuat objek Meja
 void drawTable() {
-    //glEnable(GL_TEXTURE_2D);
 
     // Atas meja
     glBegin(GL_QUADS);
@@ -445,8 +445,27 @@ void drawTable() {
     glVertex3f(-0.8f, 1.3f, 0.7f);
     glEnd();
 
-    //glDisable(GL_TEXTURE_2D);
 
+}
+
+//  Lighting atau Pencahayaan
+void initLighting() {
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    GLfloat lightPosition[] = { 1.0f, 1.0f, 1.0f, 0.0f };
+    GLfloat lightAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+    GLfloat lightDiffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    GLfloat lightSpecular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+    glShadeModel(GL_SMOOTH);
 }
 
 //  Memproyeksi window untuk menampilkan output
@@ -511,7 +530,7 @@ void display()
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
 
-    // Reset to perspective projection for 3D rendering
+    // Reset proyeksi untuk 3D rendering
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(45.0f, (GLfloat)glutGet(GLUT_WINDOW_WIDTH) / (GLfloat)glutGet(GLUT_WINDOW_HEIGHT), 0.1f, 100.0f);
@@ -524,26 +543,6 @@ void display()
     glDisable(GL_LIGHTING);
 
     glutSwapBuffers();
-}
-
-//  Lighting atau Pencahayaan
-void initLighting() {
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-
-    GLfloat lightPosition[] = { 1.0f, 1.0f, 1.0f, 0.0f };  // Directional light from the top-right
-    GLfloat lightAmbient[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    GLfloat lightDiffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    GLfloat lightSpecular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, lightDiffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
-
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-    glShadeModel(GL_FLAT);  // You can also use GL_SMOOTH for smooth shading
 }
 
 //  Fungsi untuk merotasi Dadu
@@ -563,7 +562,7 @@ void idle()
 
     if (translateY != 0.0f)
     {
-        translateY -= 0.01f; // Mengatur nilai untuk kecepatan yang diinginkan.
+        translateY -= 0.01f; // Mengatur kecepatan yang diinginkan.
 
         if (translateY <= -5.0f)  // Kondisi
         {
@@ -601,16 +600,6 @@ void keyboard(unsigned char key, int x, int y)
 
     case 27: // Esc Key untuk Close atau Exit
         exit(0);
-        break;
-
-    case 'w':
-        rotationY += 5.0f;
-        glutPostRedisplay();
-        break;
-
-    case 's':
-        rotationY -= 5.0f;
-        glutPostRedisplay();
         break;
     }
 }
